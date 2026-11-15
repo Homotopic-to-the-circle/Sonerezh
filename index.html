@@ -1,0 +1,859 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#070d1c">
+<title>Sonerezh</title>
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="sonerezh-192.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IM+Fell+English+SC&family=Alegreya:ital,wght@0,400;0,700;1,400&display=swap" media="print" onload="this.media='all'">
+<style>
+/* Sonerezh — table de son du MJ. Thème nuit : bleu marine profond, cadres dorés.
+   Mêmes polices et même filet de titre que les apps Feuille de Perso / MJ. */
+:root{
+  --bg:#070d1c;--bg2:#0a1224;--card:#0e1830;--card2:#132042;
+  --fg:#ece3cc;--muted:#8a93a9;--faint:#5b6479;
+  --gold:#cfa955;--gold-hi:#ecd08a;--gold-dim:rgba(207,169,85,.38);--gold-soft:rgba(207,169,85,.12);
+  --red:#d06a58;--red-soft:rgba(208,106,88,.14);
+  --disp:"IM Fell English SC",Georgia,"Times New Roman",serif;
+  --body:"Alegreya",Georgia,"Times New Roman",serif;
+  color-scheme:dark;
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;height:100%;background:var(--bg);color:var(--fg);font:17px/1.35 var(--body);overflow:hidden;user-select:none;-webkit-user-select:none}
+body{background:radial-gradient(ellipse at 50% -20%,#14234a 0%,var(--bg) 60%) fixed}
+button,input,select{font:inherit;color:inherit}
+button{cursor:pointer;touch-action:manipulation}
+h1,h2,h3{font-family:var(--disp);font-weight:400;margin:0;color:var(--gold-hi)}
+/* filet doré effilé sous les titres */
+h2{font-size:1.35rem;letter-spacing:.03em;padding-bottom:5px;position:relative;flex:1}
+h2::after,.filet::after{content:"";position:absolute;left:0;right:0;bottom:0;height:2px;background:linear-gradient(90deg,var(--gold) 0%,var(--gold) 55%,transparent 100%)}
+h3{font-size:1.1rem;color:var(--gold);margin:14px 0 6px}
+.cadre{background:var(--card);border:1px solid var(--gold-dim);border-radius:4px;box-shadow:inset 0 0 0 3px var(--card),inset 0 0 0 4px rgba(207,169,85,.16)}
+
+/* ---------- boutons ---------- */
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;min-height:42px;padding:0 14px;background:transparent;border:1px solid var(--gold-dim);border-radius:3px;color:var(--gold-hi);font-family:var(--disp);font-size:1rem;white-space:nowrap}
+.btn:active{background:var(--gold-soft)}
+.btn.plein{background:var(--gold);border-color:var(--gold);color:#0a1224}
+.btn.plein:active{background:var(--gold-hi)}
+.btn.rouge{border-color:rgba(208,106,88,.55);color:var(--red)}
+.btn.rouge:active{background:var(--red-soft)}
+.btn.ico{width:44px;padding:0;font-family:var(--body);font-size:1.2rem}
+.chip{min-height:38px;padding:0 13px;border:1px solid var(--gold-dim);border-radius:19px;background:transparent;color:var(--fg);font-family:var(--disp);font-size:.98rem;white-space:nowrap}
+.chip.on{background:var(--gold);border-color:var(--gold);color:#0a1224}
+.chip.plus{border-style:dashed;color:var(--gold)}
+.mini{min-width:38px;height:38px;padding:0 8px;border:1px solid transparent;border-radius:3px;background:transparent;color:var(--gold);font-size:1.05rem;flex:none}
+.mini:active{border-color:var(--gold-dim);background:var(--gold-soft)}
+.sp{flex:1}
+
+/* ---------- curseurs ---------- */
+input[type=range]{-webkit-appearance:none;appearance:none;height:30px;background:transparent;width:100%;margin:0;touch-action:none}
+input[type=range]::-webkit-slider-runnable-track{height:4px;border-radius:2px;background:linear-gradient(90deg,var(--gold) var(--p,50%),rgba(207,169,85,.22) var(--p,50%))}
+input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:22px;height:22px;margin-top:-9px;border-radius:50%;background:var(--gold-hi);border:3px solid var(--bg2);box-shadow:0 0 0 1px var(--gold)}
+input[type=range]::-moz-range-track{height:4px;background:rgba(207,169,85,.22)}
+input[type=range]::-moz-range-progress{height:4px;background:var(--gold)}
+input[type=range]::-moz-range-thumb{width:18px;height:18px;border-radius:50%;background:var(--gold-hi);border:3px solid var(--bg2)}
+.vol{display:flex;align-items:center;gap:8px;width:170px;flex:none;color:var(--muted);font-size:.85rem}
+.vol span{width:2.6ch;text-align:right;font-variant-numeric:tabular-nums}
+
+/* ---------- structure ---------- */
+#app{height:100%;display:grid;grid-template-rows:auto 1fr}
+header{display:flex;align-items:center;gap:12px;padding:10px 16px;border-bottom:1px solid var(--gold-dim);background:rgba(7,13,28,.85)}
+.marque{display:flex;flex-direction:column;line-height:1;margin-right:6px}
+.marque h1{font-size:1.75rem;letter-spacing:.04em}
+.marque small{font-family:var(--disp);color:var(--muted);font-size:.78rem;letter-spacing:.08em;margin-top:3px}
+.scenes{flex:1;min-width:0;display:flex;gap:8px;overflow-x:auto;scrollbar-width:none;padding:2px}
+.scenes::-webkit-scrollbar{display:none}
+.scenes .chip{flex:none}
+.scenes .vide{color:var(--faint);font-style:italic;align-self:center;white-space:nowrap}
+main{min-height:0;display:grid;grid-template-columns:1fr 1fr 1.3fr;gap:14px;padding:14px 16px 16px}
+.col{min-height:0;display:flex;flex-direction:column;padding:12px 14px 0}
+.tete{display:flex;align-items:flex-end;gap:10px;margin-bottom:10px}
+.tete .vol{margin-bottom:2px}
+.defile{flex:1;min-height:0;overflow-y:auto;overscroll-behavior:contain;padding-bottom:14px;margin-right:-8px;padding-right:8px;scrollbar-width:thin;scrollbar-color:var(--gold-dim) transparent}
+.aide{color:var(--muted);font-style:italic;font-size:.95rem;margin:8px 0}
+
+/* catégories */
+.cat{margin-bottom:6px}
+.cath{display:flex;align-items:center;gap:8px;min-height:42px;padding:0 2px;font-family:var(--disp);font-size:1.05rem;color:var(--gold);border-bottom:1px solid rgba(207,169,85,.18);cursor:pointer}
+.cath .fl{width:1ch;color:var(--faint);font-family:var(--body)}
+.cath .nb{color:var(--faint);font-family:var(--body);font-size:.85rem}
+
+/* fond */
+.lecture{padding:10px 12px;margin-bottom:12px;min-height:104px}
+.lecture.vide{display:flex;align-items:center;justify-content:center;color:var(--faint);font-style:italic}
+.lt{display:flex;align-items:center;gap:10px;min-height:28px}
+.lt b{font-weight:700;font-size:1.08rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.lt small{color:var(--muted);white-space:nowrap}
+.prog{height:3px;background:rgba(207,169,85,.18);margin:8px 0 8px;border-radius:2px;overflow:hidden}
+.prog i{display:block;height:100%;width:0;background:var(--gold)}
+.lb{display:flex;align-items:center;gap:8px}
+.pistes{display:flex;flex-direction:column;padding:4px 0}
+.piste{display:flex;align-items:center;gap:10px;min-height:44px;padding:0 10px;border:1px solid transparent;border-radius:3px;background:transparent;text-align:left}
+.piste>span:not(.eq){flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.piste small{color:var(--faint);font-variant-numeric:tabular-nums}
+.piste:active{background:var(--gold-soft)}
+.piste.on{background:var(--gold-soft);border-color:var(--gold-dim);color:var(--gold-hi)}
+/* petit égaliseur animé */
+.eq{display:inline-flex;align-items:flex-end;gap:2px;height:14px;flex:none}
+.eq i{width:3px;background:var(--gold-hi);animation:eq 1s ease-in-out infinite}
+.eq i:nth-child(2){animation-delay:-.4s}.eq i:nth-child(3){animation-delay:-.7s}
+@keyframes eq{0%,100%{height:3px}50%{height:14px}}
+
+/* ambiances */
+.tuiles{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px;padding:8px 0 4px}
+.tuile{border:1px solid rgba(207,169,85,.25);border-radius:4px;background:var(--card2);display:flex;flex-direction:column}
+.tuile button{min-height:58px;padding:6px 10px;border:none;background:transparent;text-align:left;display:flex;align-items:center;gap:8px;line-height:1.2}
+.tuile button>span:not(.eq){flex:1}
+.tuile.on{border-color:var(--gold);box-shadow:0 0 0 1px var(--gold-dim),0 0 16px rgba(236,208,138,.15);background:linear-gradient(180deg,#1a2a52,#132042)}
+.tuile.on button{color:var(--gold-hi)}
+.tuile input{padding:0 10px 4px;height:28px;box-sizing:content-box;width:auto}
+
+/* uniques */
+.pads{display:grid;grid-template-columns:repeat(auto-fill,minmax(128px,1fr));gap:8px;padding:8px 0 4px}
+.pad{position:relative;min-height:74px;padding:8px 10px;border:1px solid rgba(207,169,85,.3);border-radius:4px;background:linear-gradient(180deg,#16244a,#0f1a36);display:flex;align-items:center;justify-content:center;text-align:center;line-height:1.15;transition:transform .06s,box-shadow .25s,border-color .25s}
+.pad:active{transform:scale(.96)}
+.pad.joue{border-color:var(--gold-hi);box-shadow:0 0 0 1px var(--gold-hi),0 0 20px rgba(236,208,138,.35);color:var(--gold-hi)}
+.pad .var{position:absolute;top:4px;right:6px;font-size:.72rem;color:var(--faint)}
+
+/* accueil */
+.accueil{grid-column:1/-1;align-self:center;justify-self:center;max-width:560px;padding:30px 34px;text-align:center}
+.accueil h2{display:inline-block;flex:none;margin-bottom:14px}
+.accueil p{color:var(--muted);margin:10px 0 20px}
+
+/* panneaux plein écran */
+.panneau{position:fixed;inset:0;z-index:20;background:var(--bg);display:none;flex-direction:column}
+.panneau.ouvert{display:flex}
+.ptete{display:flex;align-items:center;gap:12px;padding:12px 18px;border-bottom:1px solid var(--gold-dim)}
+.ptete h2{flex:none;font-size:1.5rem}
+.pcorps{flex:1;min-height:0;overflow-y:auto;padding:16px 18px 30px}
+.onglets{display:flex;gap:8px;flex-wrap:wrap}
+.recherche{flex:1;max-width:340px;min-height:42px;padding:0 12px;background:var(--card);border:1px solid var(--gold-dim);border-radius:3px;color:var(--fg);user-select:text}
+.ligne{display:flex;align-items:center;gap:12px;min-height:54px;padding:4px 10px;border-bottom:1px solid rgba(207,169,85,.12);cursor:pointer}
+.ligne.sel{background:var(--gold-soft)}
+.case{width:24px;height:24px;flex:none;border:1px solid var(--gold-dim);border-radius:3px;display:flex;align-items:center;justify-content:center;color:#0a1224;font-weight:700}
+.ligne.sel .case{background:var(--gold);border-color:var(--gold)}
+.ln{flex:1;min-width:0;display:flex;flex-direction:column}
+.ln b{font-weight:400;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.ln small{color:var(--faint);font-size:.82rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.tag{font-family:var(--disp);font-size:.85rem;color:var(--gold);white-space:nowrap}
+.tag.nc{color:var(--faint)}
+.meta{color:var(--muted);font-size:.85rem;font-variant-numeric:tabular-nums;white-space:nowrap;width:120px;text-align:right}
+.actions{position:sticky;bottom:0;margin:0 -18px -30px;padding:12px 18px;display:flex;flex-direction:column;gap:10px;border-radius:0;border-left:none;border-right:none;border-bottom:none}
+.actions .rang{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.lcat{display:flex;align-items:center;gap:6px;min-height:46px;border-bottom:1px solid rgba(207,169,85,.12);padding-left:6px}
+.lcat span{flex:1}
+.grille2{display:grid;grid-template-columns:repeat(3,1fr);gap:18px}
+.reg{display:flex;flex-direction:column;gap:4px;padding:10px 0;border-bottom:1px solid rgba(207,169,85,.12)}
+.reg .l{display:flex;justify-content:space-between;align-items:center;gap:10px}
+.reg output{color:var(--gold-hi);font-variant-numeric:tabular-nums}
+.reg small{color:var(--muted)}
+.interr{position:relative;width:52px;height:30px;flex:none;border-radius:15px;border:1px solid var(--gold-dim);background:transparent}
+.interr::after{content:"";position:absolute;top:3px;left:3px;width:22px;height:22px;border-radius:50%;background:var(--faint);transition:.15s}
+.interr.on{background:var(--gold)}
+.interr.on::after{left:25px;background:#0a1224}
+.barre-analyse{height:3px;background:rgba(207,169,85,.18);margin-top:6px}
+.barre-analyse i{display:block;height:100%;background:var(--gold)}
+
+/* fenêtre modale + toast */
+#modal{position:fixed;inset:0;z-index:40;background:rgba(3,6,14,.72);display:none;align-items:center;justify-content:center;padding:20px}
+#modal.ouvert{display:flex}
+#modal .boite{width:min(520px,100%);padding:20px 22px;display:flex;flex-direction:column;gap:12px}
+#modal label{display:flex;flex-direction:column;gap:4px;font-family:var(--disp);color:var(--gold);font-size:.95rem}
+#modal input[type=text],#modal select{min-height:44px;padding:0 12px;background:var(--bg2);border:1px solid var(--gold-dim);border-radius:3px;color:var(--fg);font-family:var(--body);font-size:1.05rem;user-select:text}
+#modal .bt{display:flex;justify-content:flex-end;gap:10px;margin-top:4px}
+#toast{position:fixed;left:50%;bottom:22px;transform:translate(-50%,30px);opacity:0;pointer-events:none;z-index:50;display:flex;align-items:center;gap:14px;padding:10px 12px 10px 18px;transition:.2s}
+#toast.vu{opacity:1;transform:translate(-50%,0);pointer-events:auto}
+#toast .btn{min-height:36px}
+
+@media (max-width:1100px){main{grid-template-columns:1fr 1fr}.col-u{grid-column:1/-1}html,body{overflow:auto}main{min-height:auto}.defile{overflow:visible}}
+@media (max-width:1000px){.grille2{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<div id="app">
+  <header>
+    <div class="marque"><h1>Sonerezh</h1><small>table de son du MJ</small></div>
+    <button class="btn" data-act="scene+" title="Enregistrer ce qui joue en scène">＋ Scène</button>
+    <div class="scenes" id="scenes"></div>
+    <button class="btn rouge" data-act="silence">Silence</button>
+    <label class="vol" title="Volume général"><span>♪</span><input type="range" min="0" max="100" data-vol="master"><span data-out="master"></span></label>
+    <button class="btn ico" data-act="biblio" title="Bibliothèque">☰</button>
+    <button class="btn ico" data-act="reglages" title="Réglages">⚙</button>
+    <button class="btn ico" data-act="pleinecran" title="Plein écran">⛶</button>
+  </header>
+  <main id="main"></main>
+</div>
+
+<section class="panneau" id="p-biblio">
+  <div class="ptete">
+    <h2>Bibliothèque</h2>
+    <div class="onglets" id="b-onglets"></div>
+    <span class="sp"></span>
+    <input class="recherche" id="b-recherche" type="search" placeholder="Rechercher…">
+    <button class="btn ico" data-act="fermer">✕</button>
+  </div>
+  <div class="pcorps" id="b-corps"></div>
+</section>
+
+<section class="panneau" id="p-reglages">
+  <div class="ptete"><h2>Réglages</h2><span class="sp"></span><button class="btn ico" data-act="fermer">✕</button></div>
+  <div class="pcorps" id="r-corps"></div>
+</section>
+
+<div id="modal"><div class="boite cadre" id="m-boite"></div></div>
+<div id="toast" class="cadre"><span id="t-txt"></span></div>
+<input type="file" id="import" accept=".json,application/json" hidden>
+
+<script>
+'use strict';
+/* =====================================================================
+   SONEREZH
+   - Fond      : une musique à la fois, en boucle ou enchaînée dans sa catégorie,
+                 fondus enchaînés à puissance constante (sin/cos).
+   - Ambiances : plusieurs boucles superposées, chacune son volume.
+   - Uniques   : sons joués une fois, superposables ; « Épée 1 », « Épée 2 »… = un seul
+                 bouton qui tire une variante au hasard.
+   - Égalisation : chaque fichier est mesuré une fois (LUFS, ITU-R BS.1770 simplifié)
+                 et ramené au même niveau de référence.
+   - Fichiers lus directement dans un dossier de l'ordinateur (API File System Access,
+     Chromium). Rien n'est envoyé nulle part. Config dans localStorage, dossier dans IndexedDB.
+   ===================================================================== */
+
+const $=(s,r=document)=>r.querySelector(s), $$=(s,r=document)=>[...r.querySelectorAll(s)];
+const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const enc=encodeURIComponent, dec=decodeURIComponent;
+const uid=()=>Math.random().toString(36).slice(2,9);
+const clamp=(x,a,b)=>Math.min(b,Math.max(a,x));
+const EXT=/\.(mp3|wav|ogg|oga|opus|flac|m4a|aac|webm|weba)$/i;
+const SECTIONS={fond:'Fond',ambiance:'Ambiances',unique:'Uniques'};
+const SECTION1={fond:'Fond',ambiance:'Ambiance',unique:'Unique'};
+
+/* ---------------- configuration persistante ---------------- */
+const LS_CFG='sonerezh.cfg', LS_LOUD='sonerezh.loud';
+function cfgDefaut(){return{
+  v:1,
+  cats:{fond:[],ambiance:[],unique:[]},       // [{id,nom}]
+  fichiers:{},                               // chemin -> {s,c,nom,trim}
+  scenes:[],                                 // [{id,nom,fond,amb,vol}]
+  ambVol:{},                                 // chemin -> 0..100
+  ferme:{},                                  // catégories repliées
+  reg:{fondu:4,fonduBoucle:4,silence:3,norm:true,cible:-20,duck:true,duckDb:-8,eveil:true,
+       vol:{master:85,fond:80,ambiance:70,unique:85}}
+}}
+function fusion(d,c){for(const k in c){if(c[k]&&typeof c[k]==='object'&&!Array.isArray(c[k])&&d[k]&&typeof d[k]==='object'&&!Array.isArray(d[k]))fusion(d[k],c[k]);else d[k]=c[k]}return d}
+function lireCfg(){try{const c=JSON.parse(localStorage.getItem(LS_CFG));if(c&&c.v)return fusion(cfgDefaut(),c)}catch{}return cfgDefaut()}
+let cfg=lireCfg();
+let loud={};try{loud=JSON.parse(localStorage.getItem(LS_LOUD)||'{}')||{}}catch{}
+let tCfg,tLoud;
+function sauver(){clearTimeout(tCfg);tCfg=setTimeout(()=>{try{localStorage.setItem(LS_CFG,JSON.stringify(cfg))}catch(e){toast('Sauvegarde impossible : '+e.message)}},250)}
+function sauverLoud(){clearTimeout(tLoud);tLoud=setTimeout(()=>{try{localStorage.setItem(LS_LOUD,JSON.stringify(loud))}catch{}},1000)}
+addEventListener('pagehide',()=>{try{localStorage.setItem(LS_CFG,JSON.stringify(cfg));localStorage.setItem(LS_LOUD,JSON.stringify(loud))}catch{}});
+
+/* ---------------- IndexedDB (poignée du dossier) ---------------- */
+function idb(){return new Promise((ok,ko)=>{const r=indexedDB.open('sonerezh',1);r.onupgradeneeded=()=>r.result.createObjectStore('kv');r.onsuccess=()=>ok(r.result);r.onerror=()=>ko(r.error)})}
+async function idbGet(k){const db=await idb();return new Promise((ok,ko)=>{const r=db.transaction('kv').objectStore('kv').get(k);r.onsuccess=()=>ok(r.result);r.onerror=()=>ko(r.error)})}
+async function idbSet(k,v){const db=await idb();return new Promise((ok,ko)=>{const t=db.transaction('kv','readwrite');t.objectStore('kv').put(v,k);t.oncomplete=()=>ok();t.onerror=()=>ko(t.error)})}
+
+/* ---------------- bibliothèque (dossier local) ---------------- */
+const biblio=new Map();          // chemin -> {h,size,mod}
+let dossier=null, etat='charge'; // charge | aucun | permission | nonsupporte | pret
+const nomPropre=p=>p.split('/').pop().replace(/\.[^.]+$/,'').replace(/[_]+/g,' ').replace(/\s+/g,' ').trim();
+const RE_NUM=/[\s\-_.(#]*\d+\)?$/;
+const cleGroupe=n=>(n.replace(RE_NUM,'').trim()||n).toLowerCase();
+const nomGroupe=n=>n.replace(RE_NUM,'').trim()||n;
+const cleLoud=p=>{const b=biblio.get(p);return b?p+'|'+b.size+'|'+b.mod:p};
+const mesure=p=>loud[cleLoud(p)];
+async function fichier(p){const b=biblio.get(p);if(!b)throw new Error('Fichier introuvable : '+p);return b.h.getFile()}
+
+async function scanner(){
+  etat='charge';rendre();
+  biblio.clear();
+  async function parcourir(d,pre){
+    for await(const [nom,h] of d.entries()){
+      if(nom.startsWith('.'))continue;
+      if(h.kind==='directory')await parcourir(h,pre+nom+'/');
+      else if(EXT.test(nom)){try{const f=await h.getFile();biblio.set(pre+nom,{h,size:f.size,mod:f.lastModified})}catch{}}
+    }
+  }
+  try{await parcourir(dossier,'')}catch(e){toast('Lecture du dossier impossible : '+e.message)}
+  for(const p of biblio.keys())if(!cfg.fichiers[p])cfg.fichiers[p]={s:null,c:null,nom:nomPropre(p),trim:0};
+  sauver();etat='pret';rendre();rendreReglages();
+  if(ui.panneau==='biblio')rendreBiblio();
+  fileTravail();
+}
+async function init(){
+  if(!('showDirectoryPicker' in window)){etat='nonsupporte';rendre();return}
+  let h=null;try{h=await idbGet('dossier')}catch{}
+  if(!h){etat='aucun';rendre();return}
+  dossier=h;
+  let perm='prompt';try{perm=await h.queryPermission({mode:'read'})}catch{}
+  if(perm==='granted')await scanner();else{etat='permission';rendre()}
+}
+async function choisirDossier(){
+  try{const h=await showDirectoryPicker({id:'sonerezh',mode:'read'});dossier=h;await idbSet('dossier',h);await scanner()}
+  catch(e){if(e.name!=='AbortError')toast('Dossier non ouvert : '+e.message)}
+}
+async function reprendre(){
+  try{const p=await dossier.requestPermission({mode:'read'});if(p==='granted')await scanner()}catch(e){toast(e.message)}
+}
+
+/* ---------------- moteur audio ---------------- */
+let ctx=null;const bus={};
+const volGain=v=>(v/100)**2;
+function audio(){
+  if(ctx){if(ctx.state!=='running')ctx.resume();return ctx}
+  ctx=new AudioContext({latencyHint:'interactive'});
+  const lim=ctx.createDynamicsCompressor(); // limiteur de sécurité en sortie
+  lim.threshold.value=-2;lim.knee.value=0;lim.ratio.value=20;lim.attack.value=0.003;lim.release.value=0.25;
+  lim.connect(ctx.destination);
+  bus.master=ctx.createGain();bus.master.connect(lim);
+  bus.duck=ctx.createGain();bus.duck.connect(bus.master);       // baisse fond+ambiances pendant les uniques
+  bus.fond=ctx.createGain();bus.fond.connect(bus.duck);
+  bus.ambiance=ctx.createGain();bus.ambiance.connect(bus.duck);
+  bus.unique=ctx.createGain();bus.unique.connect(bus.master);
+  for(const k of ['master','fond','ambiance','unique'])bus[k].gain.value=volGain(cfg.reg.vol[k]);
+  fond=new Canal('fond');
+  setTimeout(prechargerUniques,50);
+  return ctx;
+}
+function appliquerVolumes(duree=0.05){
+  if(!ctx)return;
+  for(const k of ['master','fond','ambiance','unique'])viser(bus[k].gain,volGain(cfg.reg.vol[k]),duree);
+}
+function tenir(param){const t=ctx.currentTime;if(param.cancelAndHoldAtTime)param.cancelAndHoldAtTime(t);else{const v=param.value;param.cancelScheduledValues(t);param.setValueAtTime(v,t)}return t}
+function viser(param,cible,duree){const t=tenir(param);param.setTargetAtTime(cible,t,Math.max(duree,0.01)/3)}
+/* fondu à puissance constante : montée en sinus, descente en cosinus */
+function rampe(param,cible,duree){
+  const v0=param.value,t=tenir(param);
+  if(duree<=0.03||Math.abs(cible-v0)<1e-4){param.setValueAtTime(cible,t);return}
+  const n=64,c=new Float32Array(n);
+  for(let i=0;i<n;i++){const x=i/(n-1);c[i]=cible>v0?v0+(cible-v0)*Math.sin(x*Math.PI/2):cible+(v0-cible)*Math.cos(x*Math.PI/2)}
+  try{param.setValueCurveAtTime(c,t+0.002,duree)}catch{param.linearRampToValueAtTime(cible,t+duree)}
+}
+/* gain d'un fichier : égalisation automatique + ajustement manuel */
+function normDb(p){
+  const m=mesure(p);if(!cfg.reg.norm||!m||!isFinite(m.lufs))return 0;
+  let g=cfg.reg.cible-m.lufs;
+  if(m.peak>0)g=Math.min(g,20*Math.log10(1.6/m.peak)); // pas plus de ~4 dB dans le limiteur
+  return clamp(g,-24,15);
+}
+const gainDb=p=>normDb(p)+(cfg.fichiers[p]?.trim||0);
+const gainFichier=p=>10**(gainDb(p)/20);
+
+const lecteurs=new Set();
+/* Lecteur = un fichier lu une fois, en flux (pas décodé en entier en mémoire) */
+class Lecteur{
+  constructor(p,sortie){
+    this.p=p;this.a=new Audio();this.a.preload='auto';
+    this.trim=ctx.createGain();this.trim.gain.value=gainFichier(p);
+    this.fade=ctx.createGain();this.fade.gain.value=0;
+    ctx.createMediaElementSource(this.a).connect(this.trim).connect(this.fade).connect(sortie);
+    this.passe=false;this.mort=false;lecteurs.add(this);
+  }
+  async demarrer(f){
+    const file=await fichier(this.p);
+    if(this.mort)return this.detruire();
+    this.url=URL.createObjectURL(file);this.a.src=this.url;
+    await this.a.play();
+    if(this.mort)return;
+    rampe(this.fade.gain,1,f);
+  }
+  arreter(f){if(this.mort)return;this.mort=true;rampe(this.fade.gain,0,f);setTimeout(()=>this.detruire(),f*1000+250)}
+  detruire(){lecteurs.delete(this);try{this.a.pause();this.a.removeAttribute('src');this.a.load()}catch{}try{this.fade.disconnect()}catch{}if(this.url)URL.revokeObjectURL(this.url)}
+  get duree(){const d=this.a.duration;return isFinite(d)?d:0}
+}
+function majGains(p){for(const l of lecteurs)if(!p||l.p===p)viser(l.trim.gain,gainFichier(l.p),0.2)}
+
+/* Canal = une voix qui boucle (fondu de la piste avec elle-même) ou enchaîne une catégorie */
+class Canal{
+  constructor(section,vol=1){this.section=section;this.out=ctx.createGain();this.out.gain.value=vol;this.out.connect(bus[section]);this.l=null;this.p=null;this.mode='boucle';this.cat=null;this.file=[]}
+  jouer(p,{mode='boucle',cat=null,f=cfg.reg.fondu}={}){
+    this.mode=mode;this.cat=cat;this.p=p;
+    const vieux=this.l,n=new Lecteur(p,this.out);this.l=n;
+    n.demarrer(f).catch(e=>{toast('Lecture impossible : '+(cfg.fichiers[p]?.nom||p));console.error(e);n.arreter(0);if(this.l===n){this.l=null;this.p=null;rendre()}});
+    if(vieux)vieux.arreter(f);
+    eveil();
+  }
+  arreter(f=cfg.reg.fondu){if(this.l){this.l.arreter(f);this.l=null}this.p=null}
+  prochain(){
+    const tous=fichiersDe(this.section,this.cat);
+    if(tous.length<2)return tous[0]||this.p;
+    if(!this.file.length)this.file=melanger(tous.filter(x=>x!==this.p));
+    return this.file.shift();
+  }
+  suivant(f=cfg.reg.fondu){
+    if(this.mode==='liste'){const p=this.prochain();if(p)this.jouer(p,{mode:'liste',cat:this.cat,f})}
+    else if(this.p)this.jouer(this.p,{mode:'boucle',cat:this.cat,f});
+  }
+  tick(){
+    const l=this.l;if(!l||l.passe||l.mort)return;
+    const d=l.duree;if(!d)return;
+    const F=Math.min(this.mode==='boucle'?cfg.reg.fonduBoucle:cfg.reg.fondu,d/3);
+    if(l.a.ended||d-l.a.currentTime<=F+0.15){l.passe=true;this.suivant(F);if(this.section==='fond')rendreFond()}
+  }
+}
+let fond=null;                    // créé avec le contexte audio
+const ambs=new Map();             // chemin -> Canal
+function melanger(a){a=[...a];for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a}
+function fichiersDe(s,c){return Object.keys(cfg.fichiers).filter(p=>biblio.has(p)&&cfg.fichiers[p].s===s&&cfg.fichiers[p].c===c).sort((a,b)=>cfg.fichiers[a].nom.localeCompare(cfg.fichiers[b].nom,'fr',{numeric:true}))}
+
+function jouerFond(p){audio();if(fond.p===p&&fond.l)return;fond.file=[];fond.jouer(p,{mode:'boucle',cat:cfg.fichiers[p].c});sceneActive=null;rendreFond();rendreScenes()}
+function enchainer(c){audio();const fs=fichiersDe('fond',c);if(!fs.length)return;fond.file=[];fond.mode='liste';fond.cat=c;fond.p=null;fond.jouer(melanger(fs)[0],{mode:'liste',cat:c});sceneActive=null;rendreFond();rendreScenes()}
+function basculerAmb(p){
+  audio();
+  const c=ambs.get(p);
+  if(c){c.arreter();ambs.delete(p)}
+  else{const n=new Canal('ambiance',volGain(cfg.ambVol[p]??100));ambs.set(p,n);n.jouer(p,{mode:'boucle'})}
+  sceneActive=null;rendreAmb();rendreScenes();
+}
+
+/* uniques : décodés en mémoire pour partir tout de suite, superposables */
+const tampons=new Map(),actifs=new Set(),dernier={};
+function tampon(p){
+  if(!tampons.has(p))tampons.set(p,fichier(p).then(f=>f.arrayBuffer()).then(b=>audio().decodeAudioData(b)).catch(e=>{tampons.delete(p);throw e}));
+  return tampons.get(p);
+}
+function pads(c){
+  const m=new Map();
+  for(const p of fichiersDe('unique',c)){const n=cfg.fichiers[p].nom,k=cleGroupe(n);if(!m.has(k))m.set(k,{k,nom:nomGroupe(n),fichiers:[]});m.get(k).fichiers.push(p)}
+  return [...m.values()].sort((a,b)=>a.nom.localeCompare(b.nom,'fr',{numeric:true}));
+}
+async function jouerPad(c,k){
+  audio();
+  const pad=pads(c).find(x=>x.k===k);if(!pad)return;
+  const vs=pad.fichiers;let p=vs[Math.floor(Math.random()*vs.length)];
+  if(vs.length>1&&p===dernier[c+'|'+k])p=vs[(vs.indexOf(p)+1)%vs.length];
+  dernier[c+'|'+k]=p;
+  const cle=c+'|'+k,big=(biblio.get(p)?.size||0)>25e6;
+  let entree;
+  try{
+    if(big){ // gros fichier : lu en flux
+      const l=new Lecteur(p,bus.unique);entree={cle,stop:f=>l.arreter(f)};
+      l.a.addEventListener('ended',()=>{actifs.delete(entree);l.detruire();finUnique()});
+      await l.demarrer(0.01);
+    }else{
+      const buf=await tampon(p);
+      const src=ctx.createBufferSource(),g=ctx.createGain();
+      src.buffer=buf;g.gain.value=gainFichier(p);src.connect(g).connect(bus.unique);src.start();
+      entree={cle,stop:f=>{rampe(g.gain,0,f);try{src.stop(ctx.currentTime+f+0.05)}catch{}}};
+      src.onended=()=>{actifs.delete(entree);try{g.disconnect()}catch{}finUnique()};
+    }
+  }catch(e){toast('Lecture impossible : '+cfg.fichiers[p].nom);console.error(e);return}
+  actifs.add(entree);majDuck();majPads();
+}
+function finUnique(){majDuck();majPads()}
+function majDuck(){if(!ctx)return;const on=cfg.reg.duck&&actifs.size>0;viser(bus.duck.gain,on?10**(cfg.reg.duckDb/20):1,on?0.12:0.9)}
+function majPads(){const n={};for(const a of actifs)n[a.cle]=(n[a.cle]||0)+1;$$('[data-pad]').forEach(el=>el.classList.toggle('joue',!!n[el.dataset.c+'|'+dec(el.dataset.k)]))}
+function stopUniques(f=0.3){for(const a of actifs)a.stop(f)}
+
+function silence(){
+  if(!ctx)return;const f=cfg.reg.silence;
+  fond.arreter(f);for(const c of ambs.values())c.arreter(f);ambs.clear();stopUniques(Math.min(f,1));
+  sceneActive=null;rendre();
+}
+
+/* boucle d'horloge : transitions et barre de progression */
+setInterval(()=>{
+  if(!ctx)return;
+  fond.tick();for(const c of ambs.values())c.tick();
+  const i=$('#prog-fond');if(i&&fond.l&&fond.l.duree)i.style.width=(100*fond.l.a.currentTime/fond.l.duree).toFixed(2)+'%';
+},200);
+
+/* écran allumé pendant la partie */
+let verrou=null;
+async function eveil(){if(!cfg.reg.eveil||!('wakeLock' in navigator)||(verrou&&!verrou.released))return;try{verrou=await navigator.wakeLock.request('screen')}catch{}}
+document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible'&&(fond?.l||ambs.size))eveil()});
+
+/* ---------------- scènes ---------------- */
+let sceneActive=null;
+function etatActuel(){return{
+  fond:fond?.l?{p:fond.p,mode:fond.mode,cat:fond.cat}:null,
+  amb:[...ambs.keys()].map(p=>({p,v:cfg.ambVol[p]??100})),
+  vol:{fond:cfg.reg.vol.fond,ambiance:cfg.reg.vol.ambiance}
+}}
+function enregistrerScene(){
+  const e=etatActuel();
+  if(!e.fond&&!e.amb.length){toast('Rien ne joue : lance une musique ou une ambiance d’abord.');return}
+  const base=e.fond?(e.fond.mode==='liste'?(catNom('fond',e.fond.cat)||'Fond'):cfg.fichiers[e.fond.p].nom):cfg.fichiers[e.amb[0].p].nom;
+  const s={id:uid(),nom:base,...e};cfg.scenes.push(s);sceneActive=s.id;sauver();rendreScenes();rendreReglages();
+  toast('Scène « '+s.nom+' » enregistrée',{label:'Renommer',fn:()=>renommerScene(s.id)});
+}
+async function renommerScene(id){const s=cfg.scenes.find(x=>x.id===id);if(!s)return;const n=await demander('Nom de la scène',s.nom);if(n){s.nom=n;sauver();rendreScenes();rendreReglages()}}
+function chargerScene(id){
+  const s=cfg.scenes.find(x=>x.id===id);if(!s)return;audio();
+  const F=cfg.reg.fondu;
+  Object.assign(cfg.reg.vol,s.vol||{});appliquerVolumes(F);sauver();
+  if(s.fond&&(biblio.has(s.fond.p)||s.fond.mode==='liste')){
+    if(s.fond.mode==='liste'){if(!(fond.l&&fond.mode==='liste'&&fond.cat===s.fond.cat))enchainer(s.fond.cat)}
+    else if(!(fond.l&&fond.p===s.fond.p))fond.jouer(s.fond.p,{mode:'boucle',cat:s.fond.cat,f:F});
+    else fond.mode='boucle';
+  }else fond.arreter(F);
+  const voulu=new Map((s.amb||[]).filter(a=>biblio.has(a.p)).map(a=>[a.p,a.v]));
+  for(const [p,c] of ambs)if(!voulu.has(p)){c.arreter(F);ambs.delete(p)}
+  for(const [p,v] of voulu){
+    cfg.ambVol[p]=v;
+    const c=ambs.get(p);
+    if(c)viser(c.out.gain,volGain(v),F);
+    else{const n=new Canal('ambiance',volGain(v));ambs.set(p,n);n.jouer(p,{mode:'boucle',f:F})}
+  }
+  sceneActive=id;rendre();
+}
+function remplacerScene(id){const s=cfg.scenes.find(x=>x.id===id);const e=etatActuel();if(!s)return;if(!e.fond&&!e.amb.length){toast('Rien ne joue.');return}Object.assign(s,e);sauver();toast('Scène « '+s.nom+' » mise à jour')}
+
+/* ---------------- analyse du volume (LUFS) et préchargement ---------------- */
+const travail={total:0,fait:0,actif:false};
+async function fileTravail(){
+  if(travail.actif||etat!=='pret')return;
+  travail.actif=true;
+  if(ctx)prechargerUniques();
+  // mesurer ce qui ne l'a pas encore été, sons classés d'abord (on reboucle si le dossier a changé entre-temps)
+  const rang=p=>cfg.fichiers[p]?.s?0:1;
+  for(;;){
+    const aFaire=[...biblio.keys()].filter(p=>!mesure(p)).sort((a,b)=>rang(a)-rang(b));
+    if(!aFaire.length)break;
+    travail.total=aFaire.length;travail.fait=0;majTravail();
+    for(const p of aFaire){
+      if(!biblio.has(p)||mesure(p)){travail.fait++;continue}
+      try{loud[cleLoud(p)]=await mesurer(p)}catch(e){loud[cleLoud(p)]={err:1};console.warn(p,e)}
+      travail.fait++;sauverLoud();majGains(p);majTravail();
+      await new Promise(r=>setTimeout(r,30));
+    }
+  }
+  travail.actif=false;majTravail();
+  if(ui.panneau==='biblio')rendreListe();
+  rendre();
+}
+function prechargerUniques(){for(const p of Object.keys(cfg.fichiers))if(biblio.has(p)&&cfg.fichiers[p].s==='unique'&&biblio.get(p).size<=25e6)tampon(p).catch(()=>{})}
+async function mesurer(p){
+  const f=await fichier(p);
+  if(f.size>400e6)return{err:1};
+  const SR=16000; // décodage à 16 kHz : 3× moins de mémoire, assez pour la mesure
+  const d=await new OfflineAudioContext(1,1,SR).decodeAudioData(await f.arrayBuffer());
+  const nc=Math.min(d.numberOfChannels,2);
+  let peak=0;
+  for(let c=0;c<nc;c++){const x=d.getChannelData(c);for(let i=0;i<x.length;i++){const v=x[i]<0?-x[i]:x[i];if(v>peak)peak=v}}
+  // pondération K : plateau +4 dB au-dessus de 1,5 kHz + passe-haut 38 Hz
+  const oc=new OfflineAudioContext(nc,d.length,SR);
+  const s=oc.createBufferSource();s.buffer=d;
+  const hs=oc.createBiquadFilter();hs.type='highshelf';hs.frequency.value=1500;hs.gain.value=4;
+  const hp=oc.createBiquadFilter();hp.type='highpass';hp.frequency.value=38;hp.Q.value=0.5;
+  s.connect(hs).connect(hp).connect(oc.destination);s.start();
+  const r=await oc.startRendering();
+  // blocs de 400 ms avec pas de 100 ms, via des segments de 100 ms
+  const seg=Math.round(0.1*SR),ns=Math.floor(r.length/seg),sum=new Float64Array(Math.max(ns,1));
+  for(let c=0;c<nc;c++){const x=r.getChannelData(c);for(let k=0;k<ns;k++){let a=0;for(let i=k*seg,e=i+seg;i<e;i++)a+=x[i]*x[i];sum[k]+=a}}
+  const L=z=>-0.691+10*Math.log10(z);
+  let z=[];
+  if(ns<4){let a=0;for(let c=0;c<nc;c++){const x=r.getChannelData(c);for(let i=0;i<x.length;i++)a+=x[i]*x[i]}z=[a/Math.max(r.length,1)]}
+  else for(let k=0;k+4<=ns;k++)z.push((sum[k]+sum[k+1]+sum[k+2]+sum[k+3])/(4*seg));
+  const moy=a=>a.reduce((x,y)=>x+y,0)/a.length;
+  let g=z.filter(v=>L(v)>-70);
+  if(!g.length)return{lufs:-70,peak,dur:d.duration};
+  const seuil=L(moy(g))-10;g=g.filter(v=>L(v)>seuil);
+  return{lufs:L(moy(g)),peak,dur:d.duration};
+}
+function majTravail(){
+  const el=$('#travail');if(!el)return;
+  el.innerHTML=travail.actif&&travail.total?`Analyse des volumes : ${travail.fait} / ${travail.total}<div class="barre-analyse"><i style="width:${(100*travail.fait/travail.total).toFixed(1)}%"></i></div>`:`${biblio.size} sons dans le dossier, tous analysés.`;
+}
+
+/* ---------------- interface ---------------- */
+const ui={panneau:null,filtre:'nc',recherche:'',sel:new Set(),ranger:null,ecoute:null};
+const eq=()=>'<span class="eq"><i></i><i></i><i></i></span>';
+const catNom=(s,id)=>cfg.cats[s].find(c=>c.id===id)?.nom;
+const duree=p=>{const m=mesure(p);if(!m?.dur)return'';const s=Math.round(m.dur);return Math.floor(s/60)+':'+String(s%60).padStart(2,'0')};
+function curseur(k){const v=cfg.reg.vol[k];return`<label class="vol" title="Volume ${SECTIONS[k]||''}"><input type="range" min="0" max="100" data-vol="${k}" value="${v}" style="--p:${v}%"><span data-out="${k}">${v}</span></label>`}
+function vide(s){return`<p class="aide">Aucun son rangé en « ${SECTION1[s]} ». <button class="btn" data-act="biblio">Ouvrir la bibliothèque</button></p>`}
+function teteCat(s,c,n,extra=''){const k=s+'|'+c.id,f=!!cfg.ferme[k];return`<div class="cath" data-act="plier" data-k="${k}"><span class="fl">${f?'▸':'▾'}</span>${esc(c.nom)}<span class="nb">${n}</span><span class="sp"></span>${extra}</div>`}
+
+function rendre(){rendreScenes();rendreMain();$('[data-vol=master]').value=cfg.reg.vol.master;majCurseurs()}
+function rendreMain(){
+  const m=$('#main');
+  if(etat!=='pret'){
+    const t={
+      charge:['Sonerezh','Lecture du dossier…',''],
+      nonsupporte:['Navigateur non compatible','Sonerezh lit tes sons directement dans un dossier de ton ordinateur, ce que seuls Chromium, Chrome, Edge et Brave savent faire. Ouvre cette page dans Chromium.',''],
+      aucun:['Bienvenue','Choisis le dossier où sont rangés tes musiques et tes sons. Rien n’est copié ni envoyé : Sonerezh les lit sur place.','<button class="btn plein" data-act="dossier">Choisir le dossier</button>'],
+      permission:['Reprendre la partie',`Chromium demande ton accord pour relire le dossier « ${esc(dossier?.name)} ».`,'<button class="btn plein" data-act="reprendre">Ouvrir « '+esc(dossier?.name)+' »</button> <button class="btn" data-act="dossier">Autre dossier</button>']
+    }[etat];
+    m.innerHTML=`<div class="accueil cadre"><h2 class="filet">${t[0]}</h2><p>${t[1]}</p>${t[2]}</div>`;
+    return;
+  }
+  if(!$('#col-fond'))m.innerHTML='<section class="col cadre" id="col-fond"></section><section class="col cadre" id="col-amb"></section><section class="col cadre col-u" id="col-uni"></section>';
+  rendreFond();rendreAmb();rendreUni();
+}
+function garderDefile(id,fn){const d=$('#'+id+' .defile'),y=d?d.scrollTop:0;fn();const n=$('#'+id+' .defile');if(n)n.scrollTop=y}
+function rendreFond(){
+  const col=$('#col-fond');if(!col)return;
+  garderDefile('col-fond',()=>{
+    let h=`<div class="tete"><h2>Fond</h2>${curseur('fond')}</div>`;
+    if(fond?.l){
+      const f=cfg.fichiers[fond.p]||{nom:'…'},liste=fond.mode==='liste';
+      h+=`<div class="lecture cadre"><div class="lt">${eq()}<b>${esc(f.nom)}</b><span class="sp"></span><small>${esc(catNom('fond',fond.cat)||'')}</small></div>
+      <div class="prog"><i id="prog-fond"></i></div>
+      <div class="lb"><button class="chip ${liste?'':'on'}" data-act="mode" data-v="boucle">⟲ Boucle</button><button class="chip ${liste?'on':''}" data-act="mode" data-v="liste">⤮ Enchaîner</button><span class="sp"></span>
+      ${liste?'<button class="btn ico" data-act="suivant" title="Morceau suivant">⏭</button>':''}<button class="btn ico" data-act="stopfond" title="Arrêter en fondu">■</button></div></div>`;
+    }else h+='<div class="lecture vide cadre">Aucune musique de fond</div>';
+    h+='<div class="defile">';
+    let n=0;
+    for(const c of cfg.cats.fond){
+      const fs=fichiersDe('fond',c.id);if(!fs.length)continue;n++;
+      h+=`<section class="cat">${teteCat('fond',c,fs.length,`<button class="mini" data-act="enchainer" data-c="${c.id}" title="Enchaîner la catégorie au hasard">⤮</button>`)}`;
+      if(!cfg.ferme['fond|'+c.id])h+='<div class="pistes">'+fs.map(p=>{const on=fond?.p===p&&fond.l;return`<button class="piste ${on?'on':''}" data-act="jouerfond" data-p="${enc(p)}">${on?eq():''}<span>${esc(cfg.fichiers[p].nom)}</span><small>${duree(p)}</small></button>`}).join('')+'</div>';
+      h+='</section>';
+    }
+    if(!n)h+=vide('fond');
+    col.innerHTML=h+'</div>';
+  });
+  majCurseurs();
+}
+function rendreAmb(){
+  const col=$('#col-amb');if(!col)return;
+  garderDefile('col-amb',()=>{
+    let h=`<div class="tete"><h2>Ambiances</h2>${curseur('ambiance')}</div>
+    <div class="lb" style="margin-bottom:8px"><small class="aide" style="margin:0">${ambs.size?ambs.size+' en cours':'Plusieurs ambiances peuvent jouer ensemble.'}</small><span class="sp"></span>${ambs.size?'<button class="btn" data-act="stopamb">Tout couper</button>':''}</div><div class="defile">`;
+    let n=0;
+    for(const c of cfg.cats.ambiance){
+      const fs=fichiersDe('ambiance',c.id);if(!fs.length)continue;n++;
+      h+=`<section class="cat">${teteCat('ambiance',c,fs.length)}`;
+      if(!cfg.ferme['ambiance|'+c.id])h+='<div class="tuiles">'+fs.map(p=>{
+        const on=ambs.has(p),v=cfg.ambVol[p]??100;
+        return`<div class="tuile ${on?'on':''}"><button data-act="amb" data-p="${enc(p)}">${on?eq():''}<span>${esc(cfg.fichiers[p].nom)}</span></button>${on?`<input type="range" min="0" max="100" value="${v}" style="--p:${v}%" data-ambvol="${enc(p)}">`:''}</div>`}).join('')+'</div>';
+      h+='</section>';
+    }
+    if(!n)h+=vide('ambiance');
+    col.innerHTML=h+'</div>';
+  });
+  majCurseurs();
+}
+function rendreUni(){
+  const col=$('#col-uni');if(!col)return;
+  garderDefile('col-uni',()=>{
+    let h=`<div class="tete"><h2>Uniques</h2><button class="btn" data-act="stopuni" title="Couper les sons en cours">■ Couper</button>${curseur('unique')}</div><div class="defile">`;
+    let n=0;
+    for(const c of cfg.cats.unique){
+      const ps=pads(c.id);if(!ps.length)continue;n++;
+      h+=`<section class="cat">${teteCat('unique',c,ps.length)}`;
+      if(!cfg.ferme['unique|'+c.id])h+='<div class="pads">'+ps.map(p=>`<button class="pad" data-act="pad" data-pad data-c="${c.id}" data-k="${enc(p.k)}">${esc(p.nom)}${p.fichiers.length>1?`<span class="var">×${p.fichiers.length}</span>`:''}</button>`).join('')+'</div>';
+      h+='</section>';
+    }
+    if(!n)h+=vide('unique');
+    col.innerHTML=h+'</div>';
+  });
+  majCurseurs();majPads();
+}
+function rendreScenes(){
+  const el=$('#scenes');
+  el.innerHTML=cfg.scenes.length?cfg.scenes.map(s=>`<button class="chip ${s.id===sceneActive?'on':''}" data-act="scene" data-id="${s.id}">${esc(s.nom)}</button>`).join(''):'<span class="vide">Lance des sons puis « ＋ Scène » pour les retrouver d’un geste.</span>';
+}
+function majCurseurs(){$$('input[type=range]').forEach(i=>{const p=100*(i.value-i.min)/(i.max-i.min);i.style.setProperty('--p',p+'%')});$$('[data-out]').forEach(o=>{const k=o.dataset.out;if(cfg.reg.vol[k]!=null)o.textContent=cfg.reg.vol[k]})}
+
+/* ---- bibliothèque ---- */
+function compte(f){return Object.keys(cfg.fichiers).filter(p=>biblio.has(p)&&f(cfg.fichiers[p])).length}
+function rendreBiblio(){
+  const o=[['nc','Non classés',compte(f=>!f.s)],['fond','Fond',compte(f=>f.s==='fond')],['ambiance','Ambiances',compte(f=>f.s==='ambiance')],['unique','Uniques',compte(f=>f.s==='unique')],['tout','Tout',biblio.size],['cats','Catégories',null]];
+  $('#b-onglets').innerHTML=o.map(([k,n,c])=>`<button class="chip ${ui.filtre===k?'on':''}" data-act="filtre" data-f="${k}">${n}${c!=null?' · '+c:''}</button>`).join('');
+  $('#b-recherche').style.visibility=ui.filtre==='cats'?'hidden':'visible';
+  rendreListe();
+}
+function visibles(){
+  const q=ui.recherche.trim().toLowerCase();
+  return[...biblio.keys()].filter(p=>{const f=cfg.fichiers[p];if(!f)return false;
+    if(ui.filtre==='nc'&&f.s)return false;
+    if(['fond','ambiance','unique'].includes(ui.filtre)&&f.s!==ui.filtre)return false;
+    return!q||f.nom.toLowerCase().includes(q)||p.toLowerCase().includes(q);
+  }).sort((a,b)=>cfg.fichiers[a].nom.localeCompare(cfg.fichiers[b].nom,'fr',{numeric:true}));
+}
+function infoVol(p){const m=mesure(p);if(!m)return'<i>analyse…</i>';if(m.err)return'—';const g=gainDb(p);return(g>=0?'+':'−')+Math.abs(g).toFixed(1)+' dB'}
+function rendreListe(){
+  const c=$('#b-corps');
+  if(ui.filtre==='cats')return rendreCats();
+  if(etat!=='pret'){c.innerHTML='<p class="aide">Choisis d’abord un dossier.</p>';return}
+  const ps=visibles();
+  let h=`<div class="lb" style="margin-bottom:8px"><small class="aide" style="margin:0">${ps.length} son${ps.length>1?'s':''}. Touche une ligne pour la sélectionner, puis range la sélection en bas. ▶ pour écouter (au volume égalisé), ✎ pour renommer ou ajuster.</small><span class="sp"></span>${ps.length?'<button class="btn" data-act="toutsel">Tout sélectionner</button>':''}</div>`;
+  h+=ps.map(p=>{const f=cfg.fichiers[p],s=ui.sel.has(p);const tag=f.s?`<span class="tag">${SECTION1[f.s]} › ${esc(catNom(f.s,f.c)||'?')}</span>`:'<span class="tag nc">non classé</span>';
+    return`<div class="ligne ${s?'sel':''}" data-act="sel" data-p="${enc(p)}"><span class="case">${s?'✓':''}</span><span class="ln"><b>${esc(f.nom)}</b><small>${esc(p)}</small></span>${tag}<span class="meta">${duree(p)}  ${infoVol(p)}</span><button class="mini" data-act="ecouter" data-p="${enc(p)}">${ui.ecoute===p?'■':'▶'}</button><button class="mini" data-act="editer" data-p="${enc(p)}">✎</button></div>`}).join('');
+  if(!ps.length)h+=`<p class="aide">${ui.filtre==='nc'?'Tout est rangé.':'Rien ici.'}</p>`;
+  if(ui.sel.size){
+    h+=`<div class="actions cadre"><div class="rang"><b>${ui.sel.size} sélectionné${ui.sel.size>1?'s':''}</b><span class="aide" style="margin:0 6px">Ranger dans</span>${['fond','ambiance','unique'].map(s=>`<button class="chip ${ui.ranger===s?'on':''}" data-act="ranger" data-s="${s}">${SECTION1[s]}</button>`).join('')}<span class="sp"></span><button class="btn" data-act="declasser">Déclasser</button><button class="btn" data-act="deselect">Désélectionner</button></div>`;
+    if(ui.ranger)h+=`<div class="rang"><span class="aide" style="margin:0 6px 0 0">Catégorie :</span>${cfg.cats[ui.ranger].map(c=>`<button class="chip" data-act="rangerc" data-c="${c.id}">${esc(c.nom)}</button>`).join('')}<button class="chip plus" data-act="rangernouv">＋ Nouvelle catégorie</button></div>`;
+    h+='</div>';
+  }
+  const y=c.scrollTop;c.innerHTML=h;c.scrollTop=y;
+}
+function rendreCats(){
+  const c=$('#b-corps');
+  c.innerHTML='<p class="aide">L’ordre ici est celui de l’écran principal. Supprimer une catégorie renvoie ses sons dans « Non classés ».</p><div class="grille2">'+['fond','ambiance','unique'].map(s=>`<div><h3>${SECTIONS[s]}</h3>${cfg.cats[s].map((k,i)=>`<div class="lcat"><span>${esc(k.nom)} <small class="aide">· ${fichiersDe(s,k.id).length}</small></span><button class="mini" data-act="catmonte" data-s="${s}" data-i="${i}" ${i?'':'disabled style="opacity:.3"'}>↑</button><button class="mini" data-act="catdesc" data-s="${s}" data-i="${i}" ${i<cfg.cats[s].length-1?'':'disabled style="opacity:.3"'}>↓</button><button class="mini" data-act="catren" data-s="${s}" data-i="${i}">✎</button><button class="mini" data-act="catsup" data-s="${s}" data-i="${i}" style="color:var(--red)">✕</button></div>`).join('')}<button class="chip plus" style="margin-top:10px" data-act="catajout" data-s="${s}">＋ Ajouter</button></div>`).join('')+'</div>';
+}
+async function nouvelleCat(s){const n=await demander('Nouvelle catégorie — '+SECTION1[s],'');if(!n)return null;const c={id:uid(),nom:n};cfg.cats[s].push(c);sauver();return c}
+function ranger(s,c){
+  for(const p of ui.sel){cfg.fichiers[p].s=s;cfg.fichiers[p].c=c;if(s==='unique'&&ctx&&(biblio.get(p)?.size||0)<=25e6)tampon(p).catch(()=>{})}
+  toast(`${ui.sel.size} son${ui.sel.size>1?'s':''} rangé${ui.sel.size>1?'s':''} dans ${SECTION1[s]} › ${catNom(s,c)}`);
+  ui.sel.clear();ui.ranger=null;sauver();rendreBiblio();rendre();
+}
+let ecouteur=null;
+async function ecouter(p){
+  audio();
+  if(ecouteur){ecouteur.arreter(0.15);ecouteur=null}
+  if(ui.ecoute===p){ui.ecoute=null;rendreListe();return}
+  ui.ecoute=p;const l=new Lecteur(p,bus.master);ecouteur=l;
+  l.a.addEventListener('ended',()=>{if(ecouteur===l){ecouteur=null;ui.ecoute=null;l.detruire();if(ui.panneau==='biblio')rendreListe()}});
+  l.demarrer(0.05).catch(()=>{toast('Lecture impossible');ui.ecoute=null;rendreListe()});
+  rendreListe();
+}
+function arreterEcoute(){if(ecouteur){ecouteur.arreter(0.15);ecouteur=null;ui.ecoute=null}}
+
+function editer(p){
+  const f=cfg.fichiers[p],m=mesure(p);
+  const opts=s=>`<option value="">— non classé —</option>`+['fond','ambiance','unique'].map(x=>`<option value="${x}" ${x===s?'selected':''}>${SECTION1[x]}</option>`).join('');
+  const optc=(s,c)=>s?cfg.cats[s].map(k=>`<option value="${k.id}" ${k.id===c?'selected':''}>${esc(k.nom)}</option>`).join('')+'<option value="+">＋ Nouvelle catégorie…</option>':'';
+  ouvrirModal(`<h3 style="margin:0">Modifier le son</h3><small class="aide" style="margin:0">${esc(p)}</small>
+  <label>Nom<input type="text" id="e-nom" value="${esc(f.nom)}"></label>
+  <small class="aide" style="margin:0">Les uniques au même nom suivi d’un numéro (« Épée 1 », « Épée 2 ») forment un seul bouton qui tire une variante au hasard.</small>
+  <label>Ajustement manuel <output id="e-out">${(f.trim>=0?'+':'')+f.trim} dB</output><input type="range" id="e-trim" min="-12" max="12" step="0.5" value="${f.trim}"></label>
+  <small class="aide" style="margin:0">${m&&!m.err?`Mesuré à ${m.lufs.toFixed(1)} LUFS · égalisation automatique ${normDb(p)>=0?'+':''}${normDb(p).toFixed(1)} dB`:(m?.err?'Mesure impossible pour ce fichier.':'Mesure en cours…')}</small>
+  <div style="display:flex;gap:10px"><label style="flex:1">Section<select id="e-s">${opts(f.s)}</select></label><label style="flex:1">Catégorie<select id="e-c" ${f.s?'':'disabled'}>${optc(f.s,f.c)}</select></label></div>
+  <div class="bt"><button class="btn" data-act="ecouter" data-p="${enc(p)}">▶ Écouter</button><span class="sp"></span><button class="btn plein" data-act="mfermer">Fermer</button></div>`);
+  const nom=$('#e-nom'),tr=$('#e-trim'),se=$('#e-s'),ca=$('#e-c');
+  nom.oninput=()=>{f.nom=nom.value.trim()||nomPropre(p);sauver()};
+  tr.oninput=()=>{f.trim=+tr.value;$('#e-out').textContent=(f.trim>=0?'+':'')+f.trim+' dB';majCurseurs();majGains(p);sauver()};
+  se.onchange=()=>{const s=se.value||null;if(!s){f.s=null;f.c=null;ca.innerHTML='';ca.disabled=true}else if(!cfg.cats[s].length)return nouvelleCatPuisEditer(p,s);else{f.s=s;ca.disabled=false;f.c=cfg.cats[s][0].id;ca.innerHTML=optc(s,f.c)}sauver()};
+  ca.onchange=()=>{if(ca.value==='+')return nouvelleCatPuisEditer(p,f.s);f.c=ca.value;sauver()};
+  majCurseurs();
+  modalFermeture=()=>{rendreListe();rendre()};
+}
+
+async function nouvelleCatPuisEditer(p,s){
+  const c=await nouvelleCat(s),f=cfg.fichiers[p];
+  if(c){f.s=s;f.c=c.id}
+  sauver();if(tampons&&s==='unique'&&ctx)tampon(p).catch(()=>{});
+  editer(p);
+}
+/* ---- réglages ---- */
+function interr(k,on){return`<button class="interr ${on?'on':''}" data-act="interr" data-k="${k}"></button>`}
+function regCurseur(k,lbl,min,max,step,fmt,aide=''){const v=cfg.reg[k];return`<div class="reg"><div class="l"><span>${lbl}</span><output data-regout="${k}">${fmt(v)}</output></div><input type="range" min="${min}" max="${max}" step="${step}" value="${v}" data-reg="${k}">${aide?`<small>${aide}</small>`:''}</div>`}
+const FMT={s:v=>(+v).toFixed(1).replace('.',',')+' s',db:v=>v+' dB'};
+function rendreReglages(){
+  const r=cfg.reg;
+  $('#r-corps').innerHTML=`<div class="grille2">
+  <div><h3>Dossier</h3>
+    <div class="reg"><div class="l"><span>${dossier?'« '+esc(dossier.name)+' »':'Aucun dossier'}</span></div><small id="travail"></small>
+    <div class="lb" style="margin-top:8px"><button class="btn" data-act="dossier">Changer de dossier</button><button class="btn" data-act="actualiser" ${etat==='pret'?'':'disabled'}>Actualiser</button></div>
+    <small>« Actualiser » après avoir ajouté des fichiers. Le dossier peut être ton dossier kDrive synchronisé.</small></div>
+    <h3>Fondus</h3>
+    ${regCurseur('fondu','Entre deux musiques / ambiances',0.5,15,0.5,FMT.s)}
+    ${regCurseur('fonduBoucle','Raccord de boucle',0.5,10,0.5,FMT.s,'La fin de la piste se fond dans son début : pas de blanc, même pour des musiques non prévues pour boucler.')}
+    ${regCurseur('silence','Bouton Silence',0.5,10,0.5,FMT.s)}
+  </div>
+  <div><h3>Volumes</h3>
+    <div class="reg"><div class="l"><span>Égaliser automatiquement</span>${interr('norm',r.norm)}</div><small>Chaque son est mesuré une fois (LUFS) et ramené au même niveau. Les curseurs Fond / Ambiances / Uniques règlent ensuite l’équilibre entre sections, le crayon ✎ de la bibliothèque affine un son.</small></div>
+    ${regCurseur('cible','Niveau de référence',-30,-12,1,v=>v+' LUFS','Plus haut = tout plus fort, mais plus de sons poussés dans le limiteur.')}
+    <div class="reg"><div class="l"><span>Baisser fond et ambiances pendant un son unique</span>${interr('duck',r.duck)}</div></div>
+    ${regCurseur('duckDb','Intensité de la baisse',-18,-2,1,FMT.db)}
+    <h3>Écran</h3>
+    <div class="reg"><div class="l"><span>Garder l’écran allumé pendant la lecture</span>${interr('eveil',r.eveil)}</div></div>
+  </div>
+  <div><h3>Scènes</h3>
+    ${cfg.scenes.length?cfg.scenes.map((s,i)=>`<div class="lcat"><span>${esc(s.nom)}</span><button class="mini" data-act="scmonte" data-i="${i}" ${i?'':'disabled style="opacity:.3"'}>↑</button><button class="mini" data-act="scren" data-id="${s.id}">✎</button><button class="mini" data-act="scmaj" data-id="${s.id}" title="Remplacer par ce qui joue maintenant">⟳</button><button class="mini" data-act="scsup" data-id="${s.id}" style="color:var(--red)">✕</button></div>`).join(''):'<p class="aide">Aucune scène.</p>'}
+    <small class="aide">⟳ remplace la scène par ce qui joue maintenant.</small>
+    <h3>Sauvegarde</h3>
+    <div class="reg"><small>Catégories, noms, réglages et scènes restent dans ce navigateur. Exporte-les de temps en temps (dans ton dossier de sons par exemple) : l’import les restaure sur n’importe quel ordinateur ayant les mêmes fichiers.</small>
+    <div class="lb" style="margin-top:8px"><button class="btn" data-act="exporter">Exporter</button><button class="btn" data-act="importer">Importer</button></div></div>
+  </div></div>`;
+  majTravail();majCurseurs();
+}
+
+/* ---- modale, toast ---- */
+let modalResolve=null,modalFermeture=null;
+function ouvrirModal(html){$('#m-boite').innerHTML=html;$('#modal').classList.add('ouvert');const i=$('#m-in');if(i)setTimeout(()=>{i.focus();i.select()},30)}
+function fermerModal(v){$('#modal').classList.remove('ouvert');const r=modalResolve;modalResolve=null;if(r)r(v);const f=modalFermeture;modalFermeture=null;if(f)f()}
+function demander(titre,defaut){
+  modalFermeture=null;
+  return new Promise(ok=>{
+    ouvrirModal(`<h3 style="margin:0">${esc(titre)}</h3><input type="text" id="m-in" value="${esc(defaut)}"><div class="bt"><button class="btn" data-act="mannuler">Annuler</button><button class="btn plein" data-act="mok">Valider</button></div>`);
+    modalResolve=v=>ok(v==null?null:String(v).trim()||null);
+    $('#m-in').onkeydown=e=>{if(e.key==='Enter')fermerModal($('#m-in').value)};
+  });
+}
+function confirmer(txt,ok='Supprimer'){return new Promise(r=>{ouvrirModal(`<p style="margin:0">${txt}</p><div class="bt"><button class="btn" data-act="mannuler">Annuler</button><button class="btn rouge" data-act="mok">${ok}</button></div>`);modalResolve=v=>r(v!=null)})}
+let tToast;
+function toast(txt,act){
+  const t=$('#toast');$('#t-txt').textContent=txt;$$('#toast .btn').forEach(b=>b.remove());
+  if(act){const b=document.createElement('button');b.className='btn';b.textContent=act.label;b.onclick=()=>{t.classList.remove('vu');act.fn()};t.appendChild(b)}
+  t.classList.add('vu');clearTimeout(tToast);tToast=setTimeout(()=>t.classList.remove('vu'),act?6000:3500);
+}
+
+/* ---- panneaux ---- */
+function ouvrir(p){ui.panneau=p;$$('.panneau').forEach(x=>x.classList.toggle('ouvert',x.id==='p-'+p));if(p==='biblio')rendreBiblio();if(p==='reglages')rendreReglages()}
+function fermer(){arreterEcoute();ui.panneau=null;$$('.panneau').forEach(x=>x.classList.remove('ouvert'));rendre()}
+
+/* ---------------- actions ---------------- */
+const P=b=>dec(b.dataset.p);
+const A={
+  dossier:choisirDossier, reprendre, actualiser:()=>scanner(),
+  biblio:()=>ouvrir('biblio'), reglages:()=>ouvrir('reglages'), fermer,
+  pleinecran:()=>document.fullscreenElement?document.exitFullscreen():document.documentElement.requestFullscreen().catch(()=>{}),
+  silence, 'scene+':enregistrerScene, scene:b=>chargerScene(b.dataset.id),
+  plier:b=>{const k=b.dataset.k;cfg.ferme[k]=!cfg.ferme[k];if(!cfg.ferme[k])delete cfg.ferme[k];sauver();({fond:rendreFond,ambiance:rendreAmb,unique:rendreUni})[k.split('|')[0]]()},
+  jouerfond:b=>jouerFond(P(b)), enchainer:b=>enchainer(b.dataset.c),
+  mode:b=>{if(!fond?.l)return;if(b.dataset.v==='liste'){fond.mode='liste';fond.cat=cfg.fichiers[fond.p]?.c??fond.cat;fond.file=[]}else fond.mode='boucle';rendreFond()},
+  suivant:()=>{fond.suivant();rendreFond()}, stopfond:()=>{fond.arreter();sceneActive=null;rendreFond();rendreScenes()},
+  amb:b=>basculerAmb(P(b)), stopamb:()=>{for(const c of ambs.values())c.arreter();ambs.clear();sceneActive=null;rendreAmb();rendreScenes()},
+  pad:b=>jouerPad(b.dataset.c,dec(b.dataset.k)), stopuni:()=>stopUniques(),
+  filtre:b=>{ui.filtre=b.dataset.f;ui.sel.clear();ui.ranger=null;$('#b-corps').scrollTop=0;rendreBiblio()},
+  sel:b=>{const p=P(b);ui.sel.has(p)?ui.sel.delete(p):ui.sel.add(p);rendreListe()},
+  toutsel:()=>{const v=visibles();const tous=v.every(p=>ui.sel.has(p));v.forEach(p=>tous?ui.sel.delete(p):ui.sel.add(p));rendreListe()},
+  deselect:()=>{ui.sel.clear();ui.ranger=null;rendreListe()},
+  ranger:b=>{ui.ranger=ui.ranger===b.dataset.s?null:b.dataset.s;rendreListe()},
+  rangerc:b=>ranger(ui.ranger,b.dataset.c),
+  rangernouv:async()=>{const s=ui.ranger,c=await nouvelleCat(s);if(c)ranger(s,c.id)},
+  declasser:()=>{for(const p of ui.sel){cfg.fichiers[p].s=null;cfg.fichiers[p].c=null}toast(ui.sel.size+' son(s) déclassé(s)');ui.sel.clear();ui.ranger=null;sauver();rendreBiblio();rendre()},
+  ecouter:b=>ecouter(P(b)), editer:b=>editer(P(b)),
+  catajout:async b=>{if(await nouvelleCat(b.dataset.s))rendreCats()},
+  catren:async b=>{const c=cfg.cats[b.dataset.s][+b.dataset.i];const n=await demander('Renommer la catégorie',c.nom);if(n){c.nom=n;sauver();rendreCats();rendre()}},
+  catsup:async b=>{const s=b.dataset.s,c=cfg.cats[s][+b.dataset.i];if(!await confirmer(`Supprimer la catégorie « ${esc(c.nom)} » ? Ses sons retournent dans « Non classés ».`))return;for(const f of Object.values(cfg.fichiers))if(f.s===s&&f.c===c.id){f.s=null;f.c=null}cfg.cats[s].splice(+b.dataset.i,1);sauver();rendreBiblio();rendre()},
+  catmonte:b=>{const a=cfg.cats[b.dataset.s],i=+b.dataset.i;[a[i-1],a[i]]=[a[i],a[i-1]];sauver();rendreCats();rendre()},
+  catdesc:b=>{const a=cfg.cats[b.dataset.s],i=+b.dataset.i;[a[i+1],a[i]]=[a[i],a[i+1]];sauver();rendreCats();rendre()},
+  scren:b=>renommerScene(b.dataset.id), scmaj:b=>{remplacerScene(b.dataset.id)},
+  scsup:async b=>{const s=cfg.scenes.find(x=>x.id===b.dataset.id);if(!await confirmer(`Supprimer la scène « ${esc(s.nom)} » ?`))return;cfg.scenes=cfg.scenes.filter(x=>x!==s);sauver();rendreReglages();rendreScenes()},
+  scmonte:b=>{const a=cfg.scenes,i=+b.dataset.i;[a[i-1],a[i]]=[a[i],a[i-1]];sauver();rendreReglages();rendreScenes()},
+  interr:b=>{const k=b.dataset.k;cfg.reg[k]=!cfg.reg[k];sauver();b.classList.toggle('on',cfg.reg[k]);if(k==='norm')majGains();if(k==='duck')majDuck();if(k==='eveil'&&!cfg.reg.eveil&&verrou){verrou.release();verrou=null}},
+  exporter:()=>{const blob=new Blob([JSON.stringify({app:'sonerezh',v:1,date:new Date().toISOString(),cfg,loud},null,1)],{type:'application/json'});const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='sonerezh-'+new Date().toISOString().slice(0,10)+'.json';a.click();setTimeout(()=>URL.revokeObjectURL(a.href),2000)},
+  importer:()=>$('#import').click(),
+  mok:()=>fermerModal($('#m-in')?$('#m-in').value:true), mannuler:()=>fermerModal(null), mfermer:()=>fermerModal(null),
+};
+document.addEventListener('click',e=>{
+  const b=e.target.closest('[data-act]');if(!b||b.disabled)return;
+  if(ctx&&ctx.state!=='running')ctx.resume();
+  const f=A[b.dataset.act];if(f)f(b,e);
+});
+$('#modal').addEventListener('click',e=>{if(e.target.id==='modal')fermerModal(null)});
+document.addEventListener('input',e=>{
+  const i=e.target;
+  if(i.dataset.vol){const k=i.dataset.vol;cfg.reg.vol[k]=+i.value;if(ctx)viser(bus[k].gain,volGain(+i.value),0.05);if(k==='fond'||k==='ambiance'){sceneActive=null;rendreScenes()}sauver();majCurseurs()}
+  else if(i.dataset.ambvol){const p=dec(i.dataset.ambvol);cfg.ambVol[p]=+i.value;const c=ambs.get(p);if(c)viser(c.out.gain,volGain(+i.value),0.05);sauver();majCurseurs()}
+  else if(i.dataset.reg){const k=i.dataset.reg;cfg.reg[k]=+i.value;const o=$(`[data-regout="${k}"]`);if(o)o.textContent=({fondu:FMT.s,fonduBoucle:FMT.s,silence:FMT.s,duckDb:FMT.db,cible:v=>v+' LUFS'})[k](i.value);if(k==='cible')majGains();sauver();majCurseurs()}
+  else if(i.id==='b-recherche'){ui.recherche=i.value;rendreListe()}
+});
+$('#import').addEventListener('change',async e=>{
+  const f=e.target.files[0];e.target.value='';if(!f)return;
+  try{const d=JSON.parse(await f.text());if(d.app!=='sonerezh'||!d.cfg)throw new Error('ce n’est pas une sauvegarde Sonerezh');
+    if(!await confirmer('Remplacer catégories, noms, scènes et réglages par cette sauvegarde ?','Importer'))return;
+    cfg=fusion(cfgDefaut(),d.cfg);loud=Object.assign(loud,d.loud||{});
+    for(const p of biblio.keys())if(!cfg.fichiers[p])cfg.fichiers[p]={s:null,c:null,nom:nomPropre(p),trim:0};
+    sauver();sauverLoud();appliquerVolumes();majGains();rendreReglages();rendre();toast('Sauvegarde importée');
+  }catch(err){toast('Import impossible : '+err.message)}
+});
+addEventListener('keydown',e=>{if(e.key==='Escape'){if($('#modal').classList.contains('ouvert'))fermerModal(null);else if(ui.panneau)fermer()}});
+// Le premier toucher crée le contexte audio (exigence des navigateurs) et lance le préchargement des uniques.
+document.addEventListener('pointerdown',()=>{audio();eveil()},{capture:true});
+
+if('serviceWorker' in navigator)navigator.serviceWorker.register('sw.js').catch(()=>{});
+rendre();rendreReglages();init();
+</script>
+</body>
+</html>
