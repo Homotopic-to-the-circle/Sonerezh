@@ -69,7 +69,7 @@ header{display:flex;align-items:center;gap:12px;padding:10px 16px;border-bottom:
 .scenes::-webkit-scrollbar{display:none}
 .scenes .chip{flex:none}
 .scenes .vide{color:var(--faint);font-style:italic;align-self:center;white-space:nowrap}
-main{min-height:0;display:grid;grid-template-columns:1fr 1fr 1.3fr;gap:14px;padding:14px 16px 16px}
+main{min-height:0;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px;padding:14px 16px 16px}
 .col{min-height:0;display:flex;flex-direction:column;padding:12px 14px 0}
 .tete{display:flex;align-items:flex-end;gap:10px;margin-bottom:10px}
 .tete .vol{margin-bottom:2px}
@@ -104,10 +104,11 @@ main{min-height:0;display:grid;grid-template-columns:1fr 1fr 1.3fr;gap:14px;padd
 @keyframes eq{0%,100%{height:3px}50%{height:14px}}
 
 /* ambiances */
-.tuiles{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px;padding:8px 0 4px}
-.tuile{border:1px solid rgba(207,169,85,.25);border-radius:4px;background:var(--card2);display:flex;flex-direction:column}
-.tuile button{min-height:58px;padding:6px 10px;border:none;background:transparent;text-align:left;display:flex;align-items:center;gap:8px;line-height:1.2}
-.tuile button>span:not(.eq){flex:1}
+.tuiles{display:grid;grid-template-columns:repeat(auto-fill,minmax(128px,1fr));gap:8px;padding:8px 0 4px}
+.tuile{position:relative;border:1px solid rgba(207,169,85,.3);border-radius:4px;background:linear-gradient(180deg,#16244a,#0f1a36);display:flex;flex-direction:column}
+.tuile button{min-height:74px;padding:8px 10px;border:none;background:transparent;text-align:center;display:flex;align-items:center;justify-content:center;line-height:1.15}
+.tuile button .eq{position:absolute;top:7px;left:8px;height:11px}
+.tuile button>span:not(.eq){flex:none}
 .tuile.on{border-color:var(--gold);box-shadow:0 0 0 1px var(--gold-dim),0 0 16px rgba(236,208,138,.15);background:linear-gradient(180deg,#1a2a52,#132042)}
 .tuile.on button{color:var(--gold-hi)}
 .tuile input{padding:0 10px 4px;height:28px;box-sizing:content-box;width:auto}
