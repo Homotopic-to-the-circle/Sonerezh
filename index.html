@@ -183,13 +183,13 @@ main{min-height:0;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap
 <body>
 <div id="app">
   <header>
+    <button class="btn rouge" data-act="silence">Silence</button>
+    <button class="btn" data-act="scene+" title="Enregistrer ce qui joue en scène">＋ Scène</button>
     <div class="scenes" id="scenes"></div>
     <label class="vol" title="Volume général"><span>♪</span><input type="range" min="0" max="100" data-vol="master"><span data-out="master"></span></label>
     <button class="btn ico" data-act="biblio" title="Bibliothèque">☰</button>
     <button class="btn ico" data-act="reglages" title="Réglages">⚙</button>
     <button class="btn ico" data-act="pleinecran" title="Plein écran">⛶</button>
-    <button class="btn" data-act="scene+" title="Enregistrer ce qui joue en scène">＋ Scène</button>
-    <button class="btn rouge" data-act="silence">Silence</button>
   </header>
   <main id="main"></main>
 </div>
