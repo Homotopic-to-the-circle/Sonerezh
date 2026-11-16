@@ -699,7 +699,7 @@ function rendreAmb(){
 function rendreUni(){
   const col=$('#col-uni');if(!col)return;
   garderDefile('col-uni',()=>{
-    let h=`<div class="tete"><h2>Uniques</h2><button class="btn" data-act="stopuni" title="Couper les sons en cours">■ Couper</button>${curseur('unique')}</div><div class="defile">`;
+    let h=`<div class="tete"><h2>Uniques</h2>${curseur('unique')}</div><div class="defile">`;
     let n=0;
     for(const c of cfg.cats.unique){
       const ps=pads(c.id);if(!ps.length)continue;n++;
