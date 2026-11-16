@@ -414,8 +414,16 @@ function basculerAmb(p){
 
 /* uniques : décodés en mémoire pour partir tout de suite, superposables */
 const tampons=new Map(),actifs=new Set(),dernier={};
+/* seuls les sons courts (≤ 15 s) sont gardés décodés en mémoire, un à la fois, avec un plafond global ;
+   les plus longs sont lus en flux comme les musiques */
+const petit=p=>{const m=mesure(p);return m&&!m.err&&m.dur?m.dur<=15:(biblio.get(p)?.size||0)<=1.5e6};
+let fileTampons=Promise.resolve(),octetsTampons=0;
+function precharger(p){
+  if(!ctx||tampons.has(p)||!petit(p)||octetsTampons>350e6)return;
+  fileTampons=fileTampons.then(()=>tampon(p)).catch(()=>{});
+}
 function tampon(p){
-  if(!tampons.has(p))tampons.set(p,fichier(p).then(f=>f.arrayBuffer()).then(b=>audio().decodeAudioData(b)).catch(e=>{tampons.delete(p);throw e}));
+  if(!tampons.has(p))tampons.set(p,fichier(p).then(f=>f.arrayBuffer()).then(b=>audio().decodeAudioData(b)).then(buf=>{octetsTampons+=buf.length*buf.numberOfChannels*4;return buf}).catch(e=>{tampons.delete(p);throw e}));
   return tampons.get(p);
 }
 function pads(c){
@@ -429,7 +437,7 @@ async function jouerPad(c,k){
   const vs=pad.fichiers;let p=vs[Math.floor(Math.random()*vs.length)];
   if(vs.length>1&&p===dernier[c+'|'+k])p=vs[(vs.indexOf(p)+1)%vs.length];
   dernier[c+'|'+k]=p;
-  const cle=c+'|'+k,big=(biblio.get(p)?.size||0)>25e6;
+  const cle=c+'|'+k,big=!petit(p)&&!tampons.has(p);
   let entree;
   try{
     if(big){ // gros fichier : lu en flux
@@ -520,7 +528,7 @@ async function fileTravail(){
     for(const p of aFaire){
       if(!biblio.has(p)||mesure(p)){travail.fait++;continue}
       try{loud[cleLoud(p)]=await mesurer(p)}catch(e){loud[cleLoud(p)]={err:1};console.warn(p,e)}
-      travail.fait++;sauverLoud();majGains(p);majTravail();
+      travail.fait++;sauverLoud();majGains(p);majTravail();if(cfg.fichiers[p]?.s==='unique')precharger(p);
       await new Promise(r=>setTimeout(r,30));
     }
   }
@@ -528,34 +536,91 @@ async function fileTravail(){
   if(ui.panneau==='biblio')rendreListe();
   rendre();
 }
-function prechargerUniques(){for(const p of Object.keys(cfg.fichiers))if(biblio.has(p)&&cfg.fichiers[p].s==='unique'&&biblio.get(p).size<=25e6)tampon(p).catch(()=>{})}
+function prechargerUniques(){for(const p of Object.keys(cfg.fichiers))if(biblio.has(p)&&cfg.fichiers[p].s==='unique')precharger(p)}
+/* Mesure LUFS (ITU-R BS.1770 simplifié) en flux, mémoire constante :
+   - WAV : lu par morceaux de 4 Mo directement depuis le disque, sans décodage ;
+   - autres formats : décodés à 11 kHz, au plus les 40 premiers Mo du fichier. */
+function coefs(t,f0,fs,Q,dB){
+  const A=10**(dB/40),w=2*Math.PI*f0/fs,c=Math.cos(w),al=Math.sin(w)/(2*Q);let b0,b1,b2,a0,a1,a2;
+  if(t==='hs'){const q=2*Math.sqrt(A)*al;b0=A*((A+1)+(A-1)*c+q);b1=-2*A*((A-1)+(A+1)*c);b2=A*((A+1)+(A-1)*c-q);a0=(A+1)-(A-1)*c+q;a1=2*((A-1)-(A+1)*c);a2=(A+1)-(A-1)*c-q}
+  else{b0=(1+c)/2;b1=-(1+c);b2=(1+c)/2;a0=1+al;a1=-2*c;a2=1-al}
+  return[b0/a0,b1/a0,b2/a0,a1/a0,a2/a0];
+}
+function mesureur(fs,nc){
+  const H=coefs('hs',1500,fs,Math.SQRT1_2,4),P=coefs('hp',38,fs,0.5,0),seg=Math.max(1,Math.round(fs*0.1));
+  const st=Array.from({length:nc},()=>new Float64Array(8)),sums=[];let acc=0,n=0,peak=0,frames=0;
+  return{
+    push(ch,len){
+      for(let c=0;c<nc;c++){
+        const x=ch[c],s=st[c];let x1=s[0],x2=s[1],y1=s[2],y2=s[3],u1=s[4],u2=s[5],v1=s[6],v2=s[7];
+        for(let i=0;i<len;i++){
+          const a=x[i],aa=a<0?-a:a;if(aa>peak)peak=aa;
+          const y=H[0]*a+H[1]*x1+H[2]*x2-H[3]*y1-H[4]*y2;x2=x1;x1=a;y2=y1;y1=y;
+          const v=P[0]*y+P[1]*u1+P[2]*u2-P[3]*v1-P[4]*v2;u2=u1;u1=y;v2=v1;v1=v;
+          x[i]=v*v; // on réutilise le tableau pour l'énergie
+        }
+        s[0]=x1;s[1]=x2;s[2]=y1;s[3]=y2;s[4]=u1;s[5]=u2;s[6]=v1;s[7]=v2;
+      }
+      for(let i=0;i<len;i++){let e=0;for(let c=0;c<nc;c++)e+=ch[c][i];acc+=e;if(++n===seg){sums.push(acc/seg);acc=0;n=0}}
+      frames+=len;
+    },
+    fin(){
+      const L=z=>-0.691+10*Math.log10(z),moy=a=>a.reduce((x,y)=>x+y,0)/a.length;
+      let z=[];
+      if(sums.length<4)z=[(sums.reduce((a,b)=>a+b,0)*seg+acc)/Math.max(frames,1)];
+      else for(let k=0;k+4<=sums.length;k++)z.push((sums[k]+sums[k+1]+sums[k+2]+sums[k+3])/4);
+      let g=z.filter(v=>v>0&&L(v)>-70);
+      if(!g.length)return{lufs:-70,peak,dur:frames/fs};
+      const seuil=L(moy(g))-10;g=g.filter(v=>L(v)>seuil);
+      return{lufs:L(moy(g)),peak,dur:frames/fs};
+    }
+  };
+}
+const pause=()=>new Promise(r=>setTimeout(r,0));
+async function enteteWav(f){
+  const h=new DataView(await f.slice(0,12).arrayBuffer());
+  const t=String.fromCharCode(...new Uint8Array(h.buffer,0,4)),w=String.fromCharCode(...new Uint8Array(h.buffer,8,4));
+  if((t!=='RIFF'&&t!=='RF64')||w!=='WAVE')return null;
+  let pos=12,fmt=null;
+  while(pos+8<=f.size){
+    const c=new DataView(await f.slice(pos,pos+8).arrayBuffer()),id=String.fromCharCode(c.getUint8(0),c.getUint8(1),c.getUint8(2),c.getUint8(3));
+    let taille=c.getUint32(4,true);
+    if(id==='fmt '){const d=new DataView(await f.slice(pos+8,pos+8+Math.min(taille,40)).arrayBuffer());let code=d.getUint16(0,true);if(code===0xFFFE&&taille>=26)code=d.getUint16(24,true);fmt={code,nc:d.getUint16(2,true),fs:d.getUint32(4,true),bloc:d.getUint16(12,true),bits:d.getUint16(14,true)}}
+    else if(id==='data'){if(!fmt)return null;if(taille===0||taille===0xFFFFFFFF||pos+8+taille>f.size)taille=f.size-pos-8;return{...fmt,debut:pos+8,taille}}
+    pos+=8+taille+(taille&1);
+  }
+  return null;
+}
+async function mesurerWav(f,w){
+  if(!((w.code===1&&[8,16,24,32].includes(w.bits))||(w.code===3&&w.bits===32)))return null;
+  const nc=Math.min(w.nc,2),bp=w.bits/8,bloc=w.bloc||w.nc*bp,M=mesureur(w.fs,nc);
+  const pas=Math.floor(4e6/bloc)*bloc,fin=w.debut+w.taille;
+  for(let o=w.debut;o<fin;o+=pas){
+    const buf=await f.slice(o,Math.min(o+pas,fin)).arrayBuffer(),dv=new DataView(buf),len=Math.floor(buf.byteLength/bloc);
+    const ch=Array.from({length:nc},()=>new Float32Array(len));
+    for(let i=0;i<len;i++)for(let c=0;c<nc;c++){
+      const b=i*bloc+c*bp;let v;
+      if(w.code===3)v=dv.getFloat32(b,true);
+      else if(bp===2)v=dv.getInt16(b,true)/32768;
+      else if(bp===3){let x=dv.getUint8(b)|(dv.getUint8(b+1)<<8)|(dv.getInt8(b+2)<<16);v=x/8388608}
+      else if(bp===4)v=dv.getInt32(b,true)/2147483648;
+      else v=(dv.getUint8(b)-128)/128;
+      ch[c][i]=v;
+    }
+    M.push(ch,len);await pause();
+  }
+  return M.fin();
+}
 async function mesurer(p){
   const f=await fichier(p);
-  if(f.size>400e6)return{err:1};
-  const SR=16000; // décodage à 16 kHz : 3× moins de mémoire, assez pour la mesure
-  const d=await new OfflineAudioContext(1,1,SR).decodeAudioData(await f.arrayBuffer());
-  const nc=Math.min(d.numberOfChannels,2);
-  let peak=0;
-  for(let c=0;c<nc;c++){const x=d.getChannelData(c);for(let i=0;i<x.length;i++){const v=x[i]<0?-x[i]:x[i];if(v>peak)peak=v}}
-  // pondération K : plateau +4 dB au-dessus de 1,5 kHz + passe-haut 38 Hz
-  const oc=new OfflineAudioContext(nc,d.length,SR);
-  const s=oc.createBufferSource();s.buffer=d;
-  const hs=oc.createBiquadFilter();hs.type='highshelf';hs.frequency.value=1500;hs.gain.value=4;
-  const hp=oc.createBiquadFilter();hp.type='highpass';hp.frequency.value=38;hp.Q.value=0.5;
-  s.connect(hs).connect(hp).connect(oc.destination);s.start();
-  const r=await oc.startRendering();
-  // blocs de 400 ms avec pas de 100 ms, via des segments de 100 ms
-  const seg=Math.round(0.1*SR),ns=Math.floor(r.length/seg),sum=new Float64Array(Math.max(ns,1));
-  for(let c=0;c<nc;c++){const x=r.getChannelData(c);for(let k=0;k<ns;k++){let a=0;for(let i=k*seg,e=i+seg;i<e;i++)a+=x[i]*x[i];sum[k]+=a}}
-  const L=z=>-0.691+10*Math.log10(z);
-  let z=[];
-  if(ns<4){let a=0;for(let c=0;c<nc;c++){const x=r.getChannelData(c);for(let i=0;i<x.length;i++)a+=x[i]*x[i]}z=[a/Math.max(r.length,1)]}
-  else for(let k=0;k+4<=ns;k++)z.push((sum[k]+sum[k+1]+sum[k+2]+sum[k+3])/(4*seg));
-  const moy=a=>a.reduce((x,y)=>x+y,0)/a.length;
-  let g=z.filter(v=>L(v)>-70);
-  if(!g.length)return{lufs:-70,peak,dur:d.duration};
-  const seuil=L(moy(g))-10;g=g.filter(v=>L(v)>seuil);
-  return{lufs:L(moy(g)),peak,dur:d.duration};
+  if(/\.wav$/i.test(p)){const w=await enteteWav(f).catch(()=>null);if(w){const r=await mesurerWav(f,w);if(r)return r}}
+  const LIM=40e6,coupe=f.size>LIM,SR=11025;
+  const d=await new OfflineAudioContext(1,1,SR).decodeAudioData(await (coupe?f.slice(0,LIM):f).arrayBuffer());
+  const nc=Math.min(d.numberOfChannels,2),M=mesureur(SR,nc),pas=SR*30;
+  for(let o=0;o<d.length;o+=pas){const len=Math.min(pas,d.length-o);M.push(Array.from({length:nc},(_,c)=>d.getChannelData(c).slice(o,o+len)),len);await pause()}
+  const r=M.fin();
+  if(coupe)r.dur=r.dur*f.size/LIM; // durée estimée pour les très gros fichiers
+  return r;
 }
 function majTravail(){
   const el=$('#travail');if(!el)return;
@@ -692,7 +757,7 @@ function rendreCats(){
 }
 async function nouvelleCat(s){const n=await demander('Nouvelle catégorie — '+SECTION1[s],'');if(!n)return null;const c={id:uid(),nom:n};cfg.cats[s].push(c);sauver();return c}
 function ranger(s,c){
-  for(const p of ui.sel){cfg.fichiers[p].s=s;cfg.fichiers[p].c=c;if(s==='unique'&&ctx&&(biblio.get(p)?.size||0)<=25e6)tampon(p).catch(()=>{})}
+  for(const p of ui.sel){cfg.fichiers[p].s=s;cfg.fichiers[p].c=c;if(s==='unique')precharger(p)}
   toast(`${ui.sel.size} son${ui.sel.size>1?'s':''} rangé${ui.sel.size>1?'s':''} dans ${SECTION1[s]} › ${catNom(s,c)}`);
   ui.sel.clear();ui.ranger=null;sauver();rendreBiblio();rendre();
 }
@@ -731,7 +796,7 @@ function editer(p){
 async function nouvelleCatPuisEditer(p,s){
   const c=await nouvelleCat(s),f=cfg.fichiers[p];
   if(c){f.s=s;f.c=c.id}
-  sauver();if(tampons&&s==='unique'&&ctx)tampon(p).catch(()=>{});
+  sauver();if(s==='unique')precharger(p);
   editer(p);
 }
 /* ---- réglages ---- */
