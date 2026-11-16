@@ -1,17 +1,14 @@
-/* Cache hors ligne : l'app s'ouvre tout de suite avec la dernière version gardée,
-   puis va chercher la nouvelle en arrière-plan (visible à l'ouverture suivante).
-   Seuls les fichiers du site passent ici ; tes sons sont lus directement dans ton dossier. */
+/* Cache hors ligne : on prend toujours la dernière version en ligne si possible,
+   sinon la copie gardée (l'app s'ouvre même sans internet).
+   Tes sons ne passent jamais ici : ils sont lus directement dans ton dossier. */
 const C='sonerezh';
 self.addEventListener('install',()=>self.skipWaiting());
 self.addEventListener('activate',e=>e.waitUntil(self.clients.claim()));
 self.addEventListener('fetch',e=>{
   const r=e.request;
   if(r.method!=='GET'||new URL(r.url).origin!==location.origin)return;
-  const reseau=()=>fetch(r).then(res=>{
+  e.respondWith(fetch(r,{cache:'no-cache'}).then(res=>{
     if(res.ok&&res.type==='basic'){const copie=res.clone();caches.open(C).then(c=>c.put(r,copie)).catch(()=>{})}
-    return res});
-  e.respondWith(caches.match(r,{ignoreSearch:true}).then(hit=>{
-    if(!hit)return reseau();
-    e.waitUntil(reseau().catch(()=>{}));return hit
-  }).catch(()=>fetch(r)));
+    return res;
+  }).catch(()=>caches.match(r,{ignoreSearch:true})));
 });

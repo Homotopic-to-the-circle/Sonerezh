@@ -143,6 +143,7 @@ main{min-height:0;display:grid;grid-template-columns:1fr 1fr 1.3fr;gap:14px;padd
 .tag.nc{color:var(--faint)}
 .meta{color:var(--muted);font-size:.85rem;font-variant-numeric:tabular-nums;white-space:nowrap;width:120px;text-align:right}
 .actions{position:sticky;bottom:0;margin:0 -18px -30px;padding:12px 18px;display:flex;flex-direction:column;gap:10px;border-radius:0;border-left:none;border-right:none;border-bottom:none}
+.actions .rang+.rang{padding-top:10px;border-top:1px solid rgba(207,169,85,.2)}
 .actions .rang{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
 .lcat{display:flex;align-items:center;gap:6px;min-height:46px;border-bottom:1px solid rgba(207,169,85,.12);padding-left:6px}
 .lcat span{flex:1}
@@ -680,7 +681,7 @@ function rendreListe(){
   if(!ps.length)h+=`<p class="aide">${ui.filtre==='nc'?'Tout est rangé.':'Rien ici.'}</p>`;
   if(ui.sel.size){
     h+=`<div class="actions cadre"><div class="rang"><b>${ui.sel.size} sélectionné${ui.sel.size>1?'s':''}</b><span class="aide" style="margin:0 6px">Ranger dans</span>${['fond','ambiance','unique'].map(s=>`<button class="chip ${ui.ranger===s?'on':''}" data-act="ranger" data-s="${s}">${SECTION1[s]}</button>`).join('')}<span class="sp"></span><button class="btn" data-act="declasser">Déclasser</button><button class="btn" data-act="deselect">Désélectionner</button></div>`;
-    if(ui.ranger)h+=`<div class="rang"><span class="aide" style="margin:0 6px 0 0">Catégorie :</span>${cfg.cats[ui.ranger].map(c=>`<button class="chip" data-act="rangerc" data-c="${c.id}">${esc(c.nom)}</button>`).join('')}<button class="chip plus" data-act="rangernouv">＋ Nouvelle catégorie</button></div>`;
+    if(ui.ranger)h+=`<div class="rang"><b style="color:var(--gold-hi);margin-right:6px">→ Choisis la catégorie ${SECTION1[ui.ranger]==='Fond'?'du fond':SECTION1[ui.ranger]==='Ambiance'?'d’ambiance':'des uniques'} :</b>${cfg.cats[ui.ranger].map(c=>`<button class="chip" data-act="rangerc" data-c="${c.id}">${esc(c.nom)}</button>`).join('')}<button class="chip plus" data-act="rangernouv">＋ Nouvelle catégorie</button></div>`;
     h+='</div>';
   }
   const y=c.scrollTop;c.innerHTML=h;c.scrollTop=y;
@@ -808,7 +809,7 @@ const A={
   sel:b=>{const p=P(b);ui.sel.has(p)?ui.sel.delete(p):ui.sel.add(p);rendreListe()},
   toutsel:()=>{const v=visibles();const tous=v.every(p=>ui.sel.has(p));v.forEach(p=>tous?ui.sel.delete(p):ui.sel.add(p));rendreListe()},
   deselect:()=>{ui.sel.clear();ui.ranger=null;rendreListe()},
-  ranger:b=>{ui.ranger=ui.ranger===b.dataset.s?null:b.dataset.s;rendreListe()},
+  ranger:async b=>{const s=b.dataset.s;if(!cfg.cats[s].length){const c=await nouvelleCat(s);if(c)ranger(s,c.id);return}ui.ranger=ui.ranger===s?null:s;rendreListe()},
   rangerc:b=>ranger(ui.ranger,b.dataset.c),
   rangernouv:async()=>{const s=ui.ranger,c=await nouvelleCat(s);if(c)ranger(s,c.id)},
   declasser:()=>{for(const p of ui.sel){cfg.fichiers[p].s=null;cfg.fichiers[p].c=null}toast(ui.sel.size+' son(s) déclassé(s)');ui.sel.clear();ui.ranger=null;sauver();rendreBiblio();rendre()},
